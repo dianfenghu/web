@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>星辰导航 · Nexus</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'Noto Sans SC', 'system-ui', 'sans-serif'],
+      },
+      colors: {
+        brand: {
+          50: '#f0f9ff',
+          100: '#e0f2fe',
+          400: '#38bdf8',
+          500: '#0ea5e9',
+          600: '#0284c7',
+        }
+      },
+      animation: {
+        'float': 'float 6s ease-in-out infinite',
+        'float-slow': 'float 8s ease-in-out infinite',
+        'glow': 'glow 3s ease-in-out infinite',
+        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+      },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-20px)' },
+        },
+        glow: {
+          '0%, 100%': { boxShadow: '0 0 20px rgba(14, 165, 233, 0.3)' },
+          '50%': { boxShadow: '0 0 40px rgba(14, 165, 233, 0.6)' },
+        },
+        fadeInUp: {
+          '0%': { opacity: '0', transform: 'translateY(30px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        }
+      }
+    }
+  }
+}
+</script>
+<style>
+* { -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+.bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background-size: cover;
+  background-position: center;
+  transition: opacity 1.2s ease-in-out;
+  opacity: 0;
+}
+.bg-layer.active { opacity: 1; }
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.25) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(168, 85, 247, 0.25) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(14, 165, 233, 0.15) 0%, transparent 60%),
+    linear-gradient(180deg, rgba(10, 15, 30, 0.55) 0%, rgba(10, 15, 30, 0.75) 100%);
+  backdrop-filter: blur(2px);
+}
+.glass {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.glass-strong {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.nav-card {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+.nav-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+.nav-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(14, 165, 233, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.nav-card:hover::before { opacity: 1; }
+.nav-card .icon-wrap {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.nav-card:hover .icon-wrap {
+  transform: scale(1.15) rotate(-6deg);
+}
+.category-title {
+  position: relative;
+  display: inline-block;
+}
+.category-title::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, #38bdf8, #a855f7, #ec4899);
+  border-radius: 2px;
+}
+.menu-link {
+  position: relative;
+  transition: all 0.3s;
+}
+.menu-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #38bdf8, #a855f7);
+  transition: all 0.3s;
+  transform: translateX(-50%);
+  border-radius: 2px;
+}
+.menu-link:hover::after { width: 100%; }
+.shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.scroll-indicator {
+  animation: bounce 2s infinite;
+}
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0) translateX(-50%); }
+  40% { transform: translateY(-12px) translateX(-50%); }
+  60% { transform: translateY(-6px) translateX(-50%); }
+}
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: rgba(10, 15, 30, 0.5); }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #38bdf8, #a855f7);
+  border-radius: 4px;
+}
+.mobile-menu {
+  transform: translateX(100%);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.mobile-menu.open { transform: translateX(0); }
+.stagger-item {
+  opacity: 0;
+  transform: translateY(30px);
+}
+.stagger-item.visible {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+@keyframes fadeInUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+.time-display {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+.gradient-text {
+  background: linear-gradient(135deg, #fff 0%, #c7d2fe 50%, #93c5fd 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.logo-glow {
+  filter: drop-shadow(0 0 20px rgba(14, 165, 233, 0.5));
+}
+</style>
+</head>
+<body class="text-white antialiased">
+
+<div id="bg1" class="bg-layer"></div>
+<div id="bg2" class="bg-layer"></div>
+<div class="overlay"></div>
+
+<nav class="fixed top-0 left-0 right-0 z-50 glass-strong">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16 sm:h-20">
+      <a href="#home" class="flex items-center gap-3 group">
+        <div class="relative">
+          <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-sky-400 via-blue-500 to-purple-600 flex items-center justify-center logo-glow group-hover:animate-glow">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+        </div>
+        <div class="hidden sm:block">
+          <div class="text-lg font-bold tracking-wide">星辰导航</div>
+          <div class="text-xs text-white/50 -mt-0.5">NEXUS · 探索无限</div>
+        </div>
+      </a>
+
+      <div class="hidden lg:flex items-center gap-1">
+        <a href="#home" class="menu-link px-4 py-2 text-sm text-white/80 hover:text-white font-medium">首页</a>
+        <a href="#tools" class="menu-link px-4 py-2 text-sm text-white/80 hover:text-white font-medium">常用工具</a>
+        <a href="#design" class="menu-link px-4 py-2 text-sm text-white/80 hover:text-white font-medium">设计资源</a>
+        <a href="#develop" class="menu-link px-4 py-2 text-sm text-white/80 hover:text-white font-medium">开发文档</a>
+        <a href="#ai" class="menu-link px-4 py-2 text-sm text-white/80 hover:text-white font-medium">AI 工具</a>
+        <a href="#learn" class="menu-link px-4 py-2 text-sm text-white/80 hover:text-white font-medium">学习平台</a>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div id="clock" class="hidden sm:block time-display text-sm font-medium text-white/80 px-3 py-1.5 rounded-lg glass">--:--:--</div>
+        <button id="menuBtn" class="lg:hidden p-2 rounded-lg glass hover:bg-white/15 transition">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div id="mobileMenu" class="mobile-menu fixed inset-0 z-[60] lg:hidden">
+  <div id="menuOverlay" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+  <div class="absolute right-0 top-0 bottom-0 w-72 sm:w-80 glass-strong border-l border-white/10 p-6 pt-24">
+    <button id="closeMenu" class="absolute top-5 right-5 p-2 rounded-lg hover:bg-white/10 transition">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+    <div class="space-y-2">
+      <a href="#home" class="mobile-link block px-4 py-3 rounded-xl hover:bg-white/10 transition font-medium">🏠 首页</a>
+      <a href="#tools" class="mobile-link block px-4 py-3 rounded-xl hover:bg-white/10 transition font-medium">🛠️ 常用工具</a>
+      <a href="#design" class="mobile-link block px-4 py-3 rounded-xl hover:bg-white/10 transition font-medium">🎨 设计资源</a>
+      <a href="#develop" class="mobile-link block px-4 py-3 rounded-xl hover:bg-white/10 transition font-medium">💻 开发文档</a>
+      <a href="#ai" class="mobile-link block px-4 py-3 rounded-xl hover:bg-white/10 transition font-medium">🤖 AI 工具</a>
+      <a href="#learn" class="mobile-link block px-4 py-3 rounded-xl hover:bg-white/10 transition font-medium">📚 学习平台</a>
+    </div>
+    <div class="absolute bottom-8 left-6 right-6">
+      <div class="glass rounded-xl p-4 text-center">
+        <div class="text-2xl font-bold time-display" id="mobileClock">--:--</div>
+        <div class="text-xs text-white/50 mt-1" id="mobileDate"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section id="home" class="min-h-screen flex items-center justify-center px-4 sm:px-6 pt-24 pb-16">
+  <div class="max-w-5xl mx-auto text-center">
+    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-8 stagger-item">
+      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      <span class="text-sm text-white/80">欢迎来到数字门户</span>
+    </div>
+
+    <h1 class="text-5xl sm:text-6xl lg:text-8xl font-extrabold tracking-tight mb-6 stagger-item gradient-text">
+      星辰导航
+    </h1>
+    <p class="text-xl sm:text-2xl lg:text-3xl font-light text-white/70 mb-4 stagger-item">
+      探索 · 创造 · 无限可能
+    </p>
+    <p class="text-base sm:text-lg text-white/50 max-w-2xl mx-auto mb-12 stagger-item leading-relaxed">
+      精心收集的优质资源合集，涵盖工具、设计、开发、AI、学习等领域，助你高效工作，愉悦生活。
+    </p>
+
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 stagger-item">
+      <a href="#tools" class="group relative px-8 py-4 rounded-2xl bg-gradient-to-r from-sky-500 via-blue-500 to-purple-600 font-semibold overflow-hidden shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 transition-all hover:scale-105">
+        <span class="relative z-10 flex items-center gap-2">
+          开始探索
+          <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+          </svg>
+        </span>
+        <div class="absolute inset-0 shimmer"></div>
+      </a>
+      <a href="#ai" class="px-8 py-4 rounded-2xl glass font-semibold hover:bg-white/15 transition-all hover:scale-105 border border-white/10">
+        AI 智能区
+      </a>
+    </div>
+
+    <div class="grid grid-cols-3 gap-4 sm:gap-8 max-w-xl mx-auto stagger-item">
+      <div class="text-center">
+        <div class="text-3xl sm:text-4xl font-bold gradient-text">500+</div>
+        <div class="text-xs sm:text-sm text-white/50 mt-1">精选网站</div>
+      </div>
+      <div class="text-center">
+        <div class="text-3xl sm:text-4xl font-bold gradient-text">24/7</div>
+        <div class="text-xs sm:text-sm text-white/50 mt-1">持续更新</div>
+      </div>
+      <div class="text-center">
+        <div class="text-3xl sm:text-4xl font-bold gradient-text">100%</div>
+        <div class="text-xs sm:text-sm text-white/50 mt-1">免费访问</div>
+      </div>
+    </div>
+  </div>
+
+  <a href="#tools" class="scroll-indicator absolute left-1/2 bottom-10 text-white/60 hover:text-white transition">
+    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+    </svg>
+  </a>
+</section>
+
+<section id="tools" class="py-20 sm:py-28 px-4 sm:px-6">
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-12 sm:mb-16 text-center sm:text-left stagger-item">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass mb-4 text-sm text-white/70">
+        <span>🛠️</span><span>Category 01</span>
+      </div>
+      <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold category-title mb-6">常用工具</h2>
+      <p class="text-white/50 sm:text-lg max-w-2xl mt-6">高效实用的在线工具集合，提升你的日常工作效率</p>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
+      <a href="https://www.google.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🔍</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Google</h3>
+        <p class="text-xs sm:text-sm text-white/50">全球搜索引擎</p>
+      </a>
+      <a href="https://www.github.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-gray-600 to-gray-900 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🐙</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">GitHub</h3>
+        <p class="text-xs sm:text-sm text-white/50">代码托管平台</p>
+      </a>
+      <a href="https://www.notion.so" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-gray-100 to-gray-300 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">📝</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Notion</h3>
+        <p class="text-xs sm:text-sm text-white/50">全能笔记协作</p>
+      </a>
+      <a href="https://mail.google.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">📧</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Gmail</h3>
+        <p class="text-xs sm:text-sm text-white/50">谷歌邮箱服务</p>
+      </a>
+      <a href="https://drive.google.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-green-500 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">☁️</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">云盘</h3>
+        <p class="text-xs sm:text-sm text-white/50">Google Drive</p>
+      </a>
+      <a href="https://www.canva.cn" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🎨</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Canva</h3>
+        <p class="text-xs sm:text-sm text-white/50">在线设计工具</p>
+      </a>
+      <a href="https://tinypng.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🗜️</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">TinyPNG</h3>
+        <p class="text-xs sm:text-sm text-white/50">图片压缩工具</p>
+      </a>
+      <a href="https://json.cn" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-amber-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">📋</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">JSON 解析</h3>
+        <p class="text-xs sm:text-sm text-white/50">数据格式化</p>
+      </a>
+      <a href="https://www.processon.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">📊</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">ProcessOn</h3>
+        <p class="text-xs sm:text-sm text-white/50">流程图绘制</p>
+      </a>
+      <a href="https://translate.google.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🌐</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">翻译</h3>
+        <p class="text-xs sm:text-sm text-white/50">Google 翻译</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section id="design" class="py-20 sm:py-28 px-4 sm:px-6">
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-12 sm:mb-16 text-center sm:text-left stagger-item">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass mb-4 text-sm text-white/70">
+        <span>🎨</span><span>Category 02</span>
+      </div>
+      <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold category-title mb-6">设计资源</h2>
+      <p class="text-white/50 sm:text-lg max-w-2xl mt-6">激发创作灵感的设计资源和素材平台</p>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
+      <a href="https://dribbble.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-pink-400 to-rose-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🏀</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Dribbble</h3>
+        <p class="text-xs sm:text-sm text-white/50">设计灵感社区</p>
+      </a>
+      <a href="https://www.behance.net" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-700 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">💎</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Behance</h3>
+        <p class="text-xs sm:text-sm text-white/50">创意作品集</p>
+      </a>
+      <a href="https://unsplash.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-gray-500 to-gray-800 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">📸</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Unsplash</h3>
+        <p class="text-xs sm:text-sm text-white/50">高质量图库</p>
+      </a>
+      <a href="https://www.iconfont.cn" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">✨</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">阿里图标</h3>
+        <p class="text-xs sm:text-sm text-white/50">Iconfont 图标库</p>
+      </a>
+      <a href="https://www.figma.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🎯</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Figma</h3>
+        <p class="text-xs sm:text-sm text-white/50">UI 设计协作</p>
+      </a>
+      <a href="https://www.pinterest.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">📌</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Pinterest</h3>
+        <p class="text-xs sm:text-sm text-white/50">灵感发现平台</p>
+      </a>
+      <a href="https://pixabay.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🌿</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Pixabay</h3>
+        <p class="text-xs sm:text-sm text-white/50">免费素材图片</p>
+      </a>
+      <a href="https://www.freepik.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-lime-400 to-green-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🎭</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Freepik</h3>
+        <p class="text-xs sm:text-sm text-white/50">矢量设计素材</p>
+      </a>
+      <a href="https://coolors.co" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-fuchsia-400 to-purple-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🎨</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Coolors</h3>
+        <p class="text-xs sm:text-sm text-white/50">配色方案生成</p>
+      </a>
+      <a href="https://uizoo.cn" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-teal-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🖼️</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">UI 中国</h3>
+        <p class="text-xs sm:text-sm text-white/50">界面设计社区</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section id="develop" class="py-20 sm:py-28 px-4 sm:px-6">
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-12 sm:mb-16 text-center sm:text-left stagger-item">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass mb-4 text-sm text-white/70">
+        <span>💻</span><span>Category 03</span>
+      </div>
+      <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold category-title mb-6">开发文档</h2>
+      <p class="text-white/50 sm:text-lg max-w-2xl mt-6">权威的技术文档与开发者必备参考</p>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
+      <a href="https://developer.mozilla.org" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🦊</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">MDN</h3>
+        <p class="text-xs sm:text-sm text-white/50">Web 开发文档</p>
+      </a>
+      <a href="https://www.runoob.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">📖</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">菜鸟教程</h3>
+        <p class="text-xs sm:text-sm text-white/50">编程入门教程</p>
+      </a>
+      <a href="https://react.dev" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-sky-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">⚛️</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">React</h3>
+        <p class="text-xs sm:text-sm text-white/50">前端框架文档</p>
+      </a>
+      <a href="https://vuejs.org" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">💚</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Vue.js</h3>
+        <p class="text-xs sm:text-sm text-white/50">渐进式框架</p>
+      </a>
+      <a href="https://tailwindcss.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🌊</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Tailwind</h3>
+        <p class="text-xs sm:text-sm text-white/50">CSS 框架文档</p>
+      </a>
+      <a href="https://nodejs.org" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🟢</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Node.js</h3>
+        <p class="text-xs sm:text-sm text-white/50">服务端 JavaScript</p>
+      </a>
+      <a href="https://www.npmjs.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">📦</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">npm</h3>
+        <p class="text-xs sm:text-sm text-white/50">包管理仓库</p>
+      </a>
+      <a href="https://stackoverflow.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">💡</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">StackOverflow</h3>
+        <p class="text-xs sm:text-sm text-white/50">编程问答社区</p>
+      </a>
+      <a href="https://vercel.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">▲</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Vercel</h3>
+        <p class="text-xs sm:text-sm text-white/50">前端部署平台</p>
+      </a>
+      <a href="https://gitee.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-red-400 to-rose-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🐎</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Gitee</h3>
+        <p class="text-xs sm:text-sm text-white/50">国内代码托管</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section id="ai" class="py-20 sm:py-28 px-4 sm:px-6">
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-12 sm:mb-16 text-center sm:text-left stagger-item">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass mb-4 text-sm text-white/70">
+        <span>🤖</span><span>Category 04</span>
+      </div>
+      <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold category-title mb-6">AI 工具</h2>
+      <p class="text-white/50 sm:text-lg max-w-2xl mt-6">探索人工智能，开启智能创作新纪元</p>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
+      <a href="https://chat.openai.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🧠</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">ChatGPT</h3>
+        <p class="text-xs sm:text-sm text-white/50">OpenAI 智能对话</p>
+      </a>
+      <a href="https://claude.ai" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-amber-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🟠</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Claude</h3>
+        <p class="text-xs sm:text-sm text-white/50">Anthropic AI 助手</p>
+      </a>
+      <a href="https://gemini.google.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">💎</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Gemini</h3>
+        <p class="text-xs sm:text-sm text-white/50">Google 多模态 AI</p>
+      </a>
+      <a href="https://www.midjourney.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🎨</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Midjourney</h3>
+        <p class="text-xs sm:text-sm text-white/50">AI 艺术绘画</p>
+      </a>
+      <a href="https://www.bing.com/create" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🖌️</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Bing 图像</h3>
+        <p class="text-xs sm:text-sm text-white/50">DALL-E 创作</p>
+      </a>
+      <a href="https://yiyan.baidu.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-700 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">💬</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">文心一言</h3>
+        <p class="text-xs sm:text-sm text-white/50">百度 AI 大模型</p>
+      </a>
+      <a href="https://tongyi.aliyun.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🐬</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">通义千问</h3>
+        <p class="text-xs sm:text-sm text-white/50">阿里 AI 助手</p>
+      </a>
+      <a href="https://www.doubao.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-teal-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🫧</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">豆包</h3>
+        <p class="text-xs sm:text-sm text-white/50">字节 AI 助手</p>
+      </a>
+      <a href="https://app.leonardo.ai" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-gray-600 to-gray-900 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🦁</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Leonardo</h3>
+        <p class="text-xs sm:text-sm text-white/50">AI 创意绘画</p>
+      </a>
+      <a href="https://runwayml.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-700 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🎬</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Runway</h3>
+        <p class="text-xs sm:text-sm text-white/50">AI 视频生成</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section id="learn" class="py-20 sm:py-28 px-4 sm:px-6">
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-12 sm:mb-16 text-center sm:text-left stagger-item">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass mb-4 text-sm text-white/70">
+        <span>📚</span><span>Category 05</span>
+      </div>
+      <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold category-title mb-6">学习平台</h2>
+      <p class="text-white/50 sm:text-lg max-w-2xl mt-6">终身学习，持续成长，知识改变命运</p>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
+      <a href="https://www.bilibili.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-pink-400 to-sky-500 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">📺</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">哔哩哔哩</h3>
+        <p class="text-xs sm:text-sm text-white/50">免费学习视频</p>
+      </a>
+      <a href="https://www.coursera.org" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🎓</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Coursera</h3>
+        <p class="text-xs sm:text-sm text-white/50">全球名校课程</p>
+      </a>
+      <a href="https://www.zhihu.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">💡</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">知乎</h3>
+        <p class="text-xs sm:text-sm text-white/50">高质量问答社区</p>
+      </a>
+      <a href="https://leetcode.cn" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🧩</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">LeetCode</h3>
+        <p class="text-xs sm:text-sm text-white/50">算法刷题平台</p>
+      </a>
+      <a href="https://www.imooc.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-teal-700 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🎯</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">慕课网</h3>
+        <p class="text-xs sm:text-sm text-white/50">编程技能提升</p>
+      </a>
+      <a href="https://time.geekbang.org" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-rose-700 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">⚡</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">极客时间</h3>
+        <p class="text-xs sm:text-sm text-white/50">技术专栏课程</p>
+      </a>
+      <a href="https://weread.qq.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">📖</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">微信读书</h3>
+        <p class="text-xs sm:text-sm text-white/50">在线阅读平台</p>
+      </a>
+      <a href="https://www.netflix.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-red-600 to-red-900 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🎞️</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">Netflix</h3>
+        <p class="text-xs sm:text-sm text-white/50">观影学英语</p>
+      </a>
+      <a href="https://www.duolingo.com" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 to-lime-600 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🦉</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">多邻国</h3>
+        <p class="text-xs sm:text-sm text-white/50">趣味语言学习</p>
+      </a>
+      <a href="https://www.edx.org" target="_blank" class="nav-card glass rounded-2xl p-5 sm:p-6 stagger-item">
+        <div class="icon-wrap w-12 h-12 rounded-xl bg-gradient-to-br from-gray-600 to-gray-900 flex items-center justify-center mb-4 shadow-lg">
+          <span class="text-2xl">🏛️</span>
+        </div>
+        <h3 class="font-semibold text-base sm:text-lg mb-1">edX</h3>
+        <p class="text-xs sm:text-sm text-white/50">MIT 哈佛课程</p>
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer class="py-12 px-4 sm:px-6 border-t border-white/10">
+  <div class="max-w-7xl mx-auto text-center">
+    <div class="flex items-center justify-center gap-3 mb-6">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 via-blue-500 to-purple-600 flex items-center justify-center">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+      </div>
+      <div class="text-xl font-bold gradient-text">星辰导航 NEXUS</div>
+    </div>
+    <p class="text-white/40 text-sm mb-3">探索 · 创造 · 无限可能</p>
+    <p class="text-white/30 text-xs">
+      © <span id="year"></span> 星辰导航 · 精选全球优质资源 · 刷新页面换一张背景
+    </p>
+  </div>
+</footer>
+
+<script>
+const imageKeywords = [
+  'galaxy,stars,nebula,space,universe',
+  'mountains,sunrise,nature,landscape,sky',
+  'ocean,wave,sea,sunset,beach',
+  'city,night,lights,urban,architecture',
+  'forest,trees,mist,nature,green',
+  'abstract,geometry,neon,futuristic,cyberpunk',
+  'aurora,northern lights,sky,purple,blue',
+  'desert,dunes,sunset,sand,arid',
+  'snow,winter,mountains,alps,white',
+  'tech,circuit,digital,blue,technology',
+  'cherry blossoms,sakura,pink,spring,flower',
+  'waterfall,river,nature,rocks,green',
+  'milky way,night sky,stars,galaxy,dark',
+  'tropical,island,palm,beach,paradise',
+  'volcano,lava,fire,orange,smoke'
+];
+
+let activeBg = 1;
+const bg1 = document.getElementById('bg1');
+const bg2 = document.getElementById('bg2');
+
+function loadRandomBackground() {
+  const keyword = imageKeywords[Math.floor(Math.random() * imageKeywords.length)];
+  const timestamp = Date.now();
+  const url = `https://source.unsplash.com/1920x1080/?${keyword}&sig=${timestamp}`;
+
+  const currentActive = activeBg === 1 ? bg1 : bg2;
+  const nextActive = activeBg === 1 ? bg2 : bg1;
+
+  const img = new Image();
+  img.onload = () => {
+    nextActive.style.backgroundImage = `url('${img.src}')`;
+    currentActive.classList.remove('active');
+    nextActive.classList.add('active');
+    activeBg = activeBg === 1 ? 2 : 1;
+  };
+  img.onerror = () => {
+    const fallbackKeywords = ['nature','landscape','ocean','mountain','sunset'];
+    const fb = fallbackKeywords[Math.floor(Math.random() * fallbackKeywords.length)];
+    const fallbackUrl = `https://picsum.photos/1920/1080?random=${timestamp}`;
+    const fbImg = new Image();
+    fbImg.onload = () => {
+      nextActive.style.backgroundImage = `url('${fbImg.src}')`;
+      currentActive.classList.remove('active');
+      nextActive.classList.add('active');
+      activeBg = activeBg === 1 ? 2 : 1;
+    };
+    fbImg.src = fallbackUrl;
+  };
+  img.src = url;
+}
+loadRandomBackground();
+
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  const s = String(now.getSeconds()).padStart(2, '0');
+  const clock = document.getElementById('clock');
+  const mobileClock = document.getElementById('mobileClock');
+  if (clock) clock.textContent = `${h}:${m}:${s}`;
+  if (mobileClock) mobileClock.textContent = `${h}:${m}`;
+  const mobileDate = document.getElementById('mobileDate');
+  if (mobileDate) {
+    const weekdays = ['周日','周一','周二','周三','周四','周五','周六'];
+    mobileDate.textContent = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${weekdays[now.getDay()]}`;
+  }
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+document.getElementById('year').textContent = new Date().getFullYear();
+
+const menuBtn = document.getElementById('menuBtn');
+const closeMenu = document.getElementById('closeMenu');
+const mobileMenu = document.getElementById('mobileMenu');
+const menuOverlay = document.getElementById('menuOverlay');
+const mobileLinks = document.querySelectorAll('.mobile-link');
+
+function openMenu() { mobileMenu.classList.add('open'); document.body.style.overflow = 'hidden'; }
+function hideMenu() { mobileMenu.classList.remove('open'); document.body.style.overflow = ''; }
+menuBtn && menuBtn.addEventListener('click', openMenu);
+closeMenu && closeMenu.addEventListener('click', hideMenu);
+menuOverlay && menuOverlay.addEventListener('click', hideMenu);
+mobileLinks.forEach(link => link.addEventListener('click', hideMenu));
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry, idx) => {
+    if (entry.isIntersecting) {
+      const delay = entry.target.dataset.delay || idx * 60;
+      setTimeout(() => entry.target.classList.add('visible'), delay);
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.08, rootMargin: '0px 0px -60px 0px' });
+
+function applyStagger() {
+  document.querySelectorAll('section').forEach(section => {
+    const items = section.querySelectorAll('.stagger-item');
+    items.forEach((item, i) => {
+      item.style.animationDelay = `${i * 70}ms`;
+      item.dataset.delay = i * 70;
+      observer.observe(item);
+    });
+  });
+}
+applyStagger();
+
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+  anchor.addEventListener('click', function(e) {
+    const target = document.querySelector(this.getAttribute('href'));
+    if (target) {
+      e.preventDefault();
+      const offset = 80;
+      const top = target.getBoundingClientRect().top + window.pageYOffset - offset;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
+  });
+});
+</script>
+
+</body>
+</html>
